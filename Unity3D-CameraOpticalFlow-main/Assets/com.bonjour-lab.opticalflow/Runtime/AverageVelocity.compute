@@ -1,0 +1,39 @@
+#pragma kernel CSMain
+
+uniform RWStructuredBuffer<float3>  _AverageVelocity;       // read-write structured buffer of float3 elements
+uniform Texture2D<float4>           _Source;                // a read-only 2D texture of float4 elements,
+uniform float2                      _Resolution;            // a 2D vector of float values
+uniform float                       _Threshold;             // single float value
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint width;
+    uint height;
+    // #if defined(SHADER_API_D3D11)
+    //     uint levels;
+    //     _Source.GetDimensions(0, width, height, levels);
+    // #else
+        width = (uint) _Resolution.x;
+        height = (uint) _Resolution.y;
+    // #endif
+
+    float2 globalVelocity = float2(0, 0);
+    float maxVelocity = 0;
+    float inc;
+    for(uint y = 0; y<height; y++){
+        for(uint x = 0; x<width; x++){
+            float2 velocityAtPixel = _Source.Load(uint3(x, y, 0)).rg;           // loads the velocity data for each pixel
+            if(length(velocityAtPixel) > 0.1){                                  // checks if the length of the velocity vector is greater than 0.1   
+                globalVelocity += velocityAtPixel;                              // velocity is accumulated to globalVelocity
+                maxVelocity = max(maxVelocity, length(velocityAtPixel));        // maximum velocity is updated if necassary
+                inc ++;                                                         // counter is incremented
+            }
+        }
+    }
+    if(inc > 0){                                                                // If there were valid velocity samples
+        globalVelocity = globalVelocity / inc;                                  // accumulated global velocity is divided by inc to compute the average velocity
+    }
+
+    _AverageVelocity[id.x] = float3(globalVelocity, maxVelocity);               // the computed average velocity and maximum velocity are stored
+}

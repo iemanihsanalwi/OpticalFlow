@@ -1,0 +1,43 @@
+#pragma kernel CSMain
+
+uniform RWStructuredBuffer<float2> _HighFlowPixels;     // read-write structured buffer of float2 elements
+uniform RWStructuredBuffer<float2> _HighFlowXY;         // read-write structured buffer of float2 elements
+uniform Texture2D<float4> _Source;                      // read-only 2D texture of float4 elements
+uniform float2 _Resolution;                             // 2D vector of float
+uniform float _Threshold;                               // single float value representing the flow magnitude threshold
+
+[numthreads(1, 1, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint width;
+    uint height;
+
+    width = (uint)_Resolution.x;
+    height = (uint)_Resolution.y;
+
+    float2 highFlowPixels[1000];                        // store the coordinates of high flow pixels
+    float2 highFlowXY[1000];                            // store high flow pixels
+    float numHighFlowPixels;                         // number of high flow pixels found
+
+    for (uint y = 0; y < height; y+=10)
+    {
+        for (uint x = 0; x < width; x+=17)
+        {
+            float2 velocityAtPixel = _Source.Load(uint3(x, y, 0)).rg;   // loads the velocity data for each pixel
+            float flowMagnitude = length(velocityAtPixel);              // calculates the flow magnitude
+
+            if (flowMagnitude > _Threshold)
+            {
+                highFlowPixels[numHighFlowPixels] = float2(x, y);       // stores the coordinates of the pixel
+                highFlowXY[numHighFlowPixels] = float2(velocityAtPixel);// velocity data is stored in the highFlowXY
+                numHighFlowPixels++;                                    // counter is incremented
+            }
+        }
+    }
+
+    for (float i = 0; i < numHighFlowPixels; i++)
+    {
+        _HighFlowPixels[i] = highFlowPixels[i];
+        _HighFlowXY[i] = highFlowXY[i];
+    }
+}
