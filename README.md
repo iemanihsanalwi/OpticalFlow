@@ -1,4 +1,4 @@
-# OpticalFlow
+# Geometric Simplification for Mitigating Cybersickness
 Mitigating cybersickness in VR through reduced visual cues. Optical flow analysis, game object identification, and geometric simplification techniques.
 
 Welcome to the Cybersickness Mitigation Project!
